@@ -1,98 +1,113 @@
 #include <iostream>
 #include <algorithm>
-using namespace std;
-#define MAX 20
 
-class edge {
-public:
+using namespace std;
+
+const int MAX_VERTICES = 100; 
+const int MAX_EDGES = 100;   
+
+struct Edge {
     int src, dest, weight;
 };
 
-class listgraph{
-    edge edges[MAX];
-    int n, e;
-    public:
-    listgraph(int nov, int noe){
-        n = nov;
-        e = noe;
-    }
-    void create();
-    void display();
-    void kruskals();
+struct Subset {
+    int parent, rank;
 };
 
-bool compareEdges(const edge &a, const edge &b) {
-    return a.weight < b.weight;
+struct Graph {
+    int V, E;          
+    Edge edges[MAX_EDGES]; 
+};
+
+Graph createGraph(int V, int E) {
+    Graph graph;
+    graph.V = V;
+    graph.E = E;
+    return graph;
 }
 
-void listgraph::create(){
-    for(int i = 0; i < e; i++) {
-        cout << "Enter source, destination, and weight of edge " << i+1 << ": ";
-        cin >> edges[i].src >> edges[i].dest >> edges[i].weight;
+int find(Subset subsets[], int i) {
+    if (subsets[i].parent != i)
+        subsets[i].parent = find(subsets, subsets[i].parent);
+    return subsets[i].parent;
+}
+
+void Union(Subset subsets[], int x, int y) {
+    int xroot = find(subsets, x);
+    int yroot = find(subsets, y);
+    if (subsets[xroot].rank < subsets[yroot].rank)
+        subsets[xroot].parent = yroot;
+    else if (subsets[xroot].rank > subsets[yroot].rank)
+        subsets[yroot].parent = xroot;
+    else {
+        subsets[yroot].parent = xroot;
+        subsets[xroot].rank++;
     }
 }
 
-void listgraph::display(){
-    cout << "Edges in the graph:\n";
-    for(int i = 0; i < e; i++) {
-        cout << edges[i].src << " - " << edges[i].dest << " : " << edges[i].weight << endl;
+void KruskalMST(Graph graph) {
+    int V = graph.V;
+    Edge result[V]; 
+    int e = 0;  
+
+    sort(graph.edges, graph.edges + graph.E, [](const Edge &a, const Edge &b) {
+        return a.weight < b.weight;
+    });
+
+    Subset subsets[MAX_VERTICES];
+
+    for (int v = 0; v < V; v++) {
+        subsets[v].parent = v;
+        subsets[v].rank = 0;
     }
-}
 
-int find(int parent[], int i) {
-    if (parent[i] == -1)
-        return i;
-    return find(parent, parent[i]);
-}
-
-void Union(int parent[], int x, int y) {
-    int xset = find(parent, x);
-    int yset = find(parent, y);
-    parent[xset] = yset;
-}
-
-void listgraph::kruskals() {
-    edge result[n];
-    int parent[n];
-    int i = 0, e = 0;
-
-    sort(edges, edges + this->e, compareEdges);
-
-    fill(parent, parent + n, -1);
-
-    while (e < n - 1 && i < this->e) {
-        edge next_edge = edges[i++];
-
-        int x = find(parent, next_edge.src);
-        int y = find(parent, next_edge.dest);
+    int totalCost = 0;
+    for (int i = 0; e < V - 1 && i < graph.E; i++) {
+        Edge next_edge = graph.edges[i];
+        int x = find(subsets, next_edge.src);
+        int y = find(subsets, next_edge.dest);
 
         if (x != y) {
             result[e++] = next_edge;
-            Union(parent, x, y);
+            Union(subsets, x, y);
+            totalCost += next_edge.weight;
         }
     }
 
-    if (e < n - 1) {
-        cout << "\nNo spanning tree exists.";
-        return;
-    }
+    cout << "Cost of building the MST: " << totalCost << endl;
 
-    cout << "\nEdges in spanning tree:\n";
-    for (int i = 0; i < e; i++) {
+    cout << "Edges of MST:" << endl;
+    for (int i = 0; i < e; i++)
         cout << result[i].src << " - " << result[i].dest << " : " << result[i].weight << endl;
-    }
 }
 
-int main(){
-    int n, e;
-    cout << "Enter the number of vertices: ";
-    cin >> n;
-    cout << "Enter the number of edges: ";
-    cin >> e;
 
-    listgraph g(n, e);
-    g.create();
-    g.display();
-    g.kruskals();
+int main() {
+    int V = 4; 
+    int E = 5; 
+    Graph graph = createGraph(V, E);
+
+    graph.edges[0].src = 0;
+    graph.edges[0].dest = 1;
+    graph.edges[0].weight = 10;
+
+    graph.edges[1].src = 0;
+    graph.edges[1].dest = 2;
+    graph.edges[1].weight = 6;
+
+    graph.edges[2].src = 0;
+    graph.edges[2].dest = 3;
+    graph.edges[2].weight = 5;
+
+    graph.edges[3].src = 1;
+    graph.edges[3].dest = 3;
+    graph.edges[3].weight = 15;
+
+    graph.edges[4].src = 2;
+    graph.edges[4].dest = 3;
+    graph.edges[4].weight = 4;
+
+    KruskalMST(graph);
+
     return 0;
 }
